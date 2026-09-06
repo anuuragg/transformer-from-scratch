@@ -1,5 +1,7 @@
 # Transformer From Scratch
 
-A beginner-friendly implementation of a Transformer built from scratch using NumPy.
+![transformer architecture](/images/architecture.png)
 
-The goal of this project is to understand how Transformers work under the hood, rather than relying on high-level deep learning frameworks.
+A small char-level language model, built by hand to actually understand how transformers work, not just how to call one.
+
+It's a decoder-only transformer (GPT-style), implemented in NumPy and trained to predict the next character in a piece of text. No high-level deep learning framework doing the heavy lifting: attention, backpropagation, and training are all implemented from first principles.
