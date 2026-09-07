@@ -50,13 +50,3 @@ class FeedForward:
         grad_X = grad_hidden_pre @ self.W1.T
 
         return grad_X
-
-
-ffn = FeedForward(32, 128)
-
-X = np.random.randn(5, 32)
-
-output = ffn.forward(X)
-
-print(output.shape)
-print(ffn.hidden.shape)
