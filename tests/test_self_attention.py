@@ -13,6 +13,7 @@ def test_qkv_shapes():
     attention = SelfAttention(embed_dim=32, num_heads=4)
 
     X = np.random.randn(5, 32)
+
     attention.forward(X)
 
     assert attention.Q.shape == (4, 5, 8)
@@ -24,9 +25,46 @@ def test_output_shape():
     attention = SelfAttention(embed_dim=32, num_heads=4)
 
     X = np.random.randn(5, 32)
+
     output = attention.forward(X)
 
     assert output.shape == (5, 32)
+
+
+def test_attention_weights_shape():
+    attention = SelfAttention(embed_dim=32, num_heads=4)
+
+    X = np.random.randn(5, 32)
+
+    attention.forward(X)
+
+    assert attention.attention_weights.shape == (4, 5, 5)
+
+
+def test_softmax_rows_sum_to_one():
+    attention = SelfAttention(embed_dim=32, num_heads=4)
+
+    X = np.random.randn(5, 32)
+
+    attention.forward(X)
+
+    row_sums = attention.attention_weights.sum(axis=-1)
+
+    assert np.allclose(row_sums, 1.0)
+
+
+def test_causal_mask():
+    attention = SelfAttention(embed_dim=32, num_heads=4)
+
+    X = np.random.randn(5, 32)
+
+    attention.forward(X)
+
+    weights = attention.attention_weights
+
+    for i in range(5):
+        for j in range(i + 1, 5):
+            assert np.allclose(weights[:, i, j], 0.0)
 
 
 def test_different_inputs_produce_different_outputs():
@@ -41,10 +79,75 @@ def test_different_inputs_produce_different_outputs():
     assert not np.allclose(output1, output2)
 
 
-def test_sequence_length():
+def test_different_sequence_length():
     attention = SelfAttention(embed_dim=32, num_heads=4)
 
     X = np.random.randn(8, 32)
+
     output = attention.forward(X)
 
     assert output.shape == (8, 32)
+
+
+def test_backward_output_shape():
+    attention = SelfAttention(embed_dim=32, num_heads=4)
+
+    X = np.random.randn(5, 32)
+
+    output = attention.forward(X)
+
+    grad_output = np.ones_like(output)
+
+    grad_X = attention.backward(grad_output)
+
+    assert grad_X.shape == X.shape
+
+
+def test_backward_weight_shapes():
+    attention = SelfAttention(embed_dim=32, num_heads=4)
+
+    X = np.random.randn(5, 32)
+
+    output = attention.forward(X)
+
+    grad_output = np.ones_like(output)
+
+    attention.backward(grad_output)
+
+    assert attention.grad_W_Q.shape == (32, 32)
+    assert attention.grad_W_K.shape == (32, 32)
+    assert attention.grad_W_V.shape == (32, 32)
+    assert attention.grad_W_O.shape == (32, 32)
+
+
+def test_backward_gradients_are_finite():
+    attention = SelfAttention(embed_dim=32, num_heads=4)
+
+    X = np.random.randn(5, 32)
+
+    output = attention.forward(X)
+
+    grad_output = np.ones_like(output)
+
+    grad_X = attention.backward(grad_output)
+
+    assert np.all(np.isfinite(grad_X))
+    assert np.all(np.isfinite(attention.grad_W_Q))
+    assert np.all(np.isfinite(attention.grad_W_K))
+    assert np.all(np.isfinite(attention.grad_W_V))
+    assert np.all(np.isfinite(attention.grad_W_O))
+
+
+def test_backward_with_random_gradient():
+    attention = SelfAttention(embed_dim=32, num_heads=4)
+
+    X = np.random.randn(5, 32)
+
+    output = attention.forward(X)
+
+    grad_output = np.random.randn(5, 32)
+
+    grad_X = attention.backward(grad_output)
+
+    assert grad_X.shape == (5, 32)
+    assert np.all(np.isfinite(grad_X))
