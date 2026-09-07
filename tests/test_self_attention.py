@@ -151,3 +151,50 @@ def test_backward_with_random_gradient():
 
     assert grad_X.shape == (5, 32)
     assert np.all(np.isfinite(grad_X))
+    
+
+def test_backward_gradient_check():
+    np.random.seed(42)
+
+    attention = SelfAttention(
+        embed_dim=8,
+        num_heads=2
+    )
+
+    X = np.random.randn(3, 8)
+
+    output = attention.forward(X)
+
+    grad_output = np.random.randn(*output.shape)
+
+    analytical_grad = attention.backward(grad_output)
+
+    epsilon = 1e-5
+
+    numerical_grad = np.zeros_like(X)
+
+    for i in range(X.shape[0]):
+        for j in range(X.shape[1]):
+
+            X_plus = X.copy()
+            X_minus = X.copy()
+
+            X_plus[i, j] += epsilon
+            X_minus[i, j] -= epsilon
+
+            output_plus = attention.forward(X_plus)
+            output_minus = attention.forward(X_minus)
+
+            loss_plus = np.sum(output_plus * grad_output)
+            loss_minus = np.sum(output_minus * grad_output)
+
+            numerical_grad[i, j] = (
+                loss_plus - loss_minus
+            ) / (2 * epsilon)
+
+    assert np.allclose(
+        analytical_grad,
+        numerical_grad,
+        rtol=1e-4,
+        atol=1e-5
+    )
